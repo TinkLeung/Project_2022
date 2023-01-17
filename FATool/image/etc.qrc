@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/img">
+        <file>Logo.ico</file>
+        <file>XITC_Title.png</file>
+    </qresource>
+</RCC>

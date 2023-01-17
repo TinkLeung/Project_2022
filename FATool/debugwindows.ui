@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>DebugWindows</class>
+ <widget class="QWidget" name="DebugWindows">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>450</width>
+    <height>632</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <widget class="QWidget" name="widget" native="true">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>10</y>
+     <width>431</width>
+     <height>611</height>
+    </rect>
+   </property>
+   <widget class="QGroupBox" name="groupBox_setPwdCnt">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>0</y>
+      <width>411</width>
+      <height>171</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Microsoft YaHei UI</family>
+      <pointsize>10</pointsize>
+      <weight>75</weight>
+      <bold>true</bold>
+     </font>
+    </property>
+    <property name="title">
+     <string>Set Password Count</string>
+    </property>
+    <widget class="QLabel" name="label">
+     <property name="geometry">
+      <rect>
+       <x>40</x>
+       <y>40</y>
+       <width>91</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="font">
+      <font>
+       <weight>50</weight>
+       <bold>false</bold>
+      </font>
+     </property>
+     <property name="text">
+      <string>Password Cnt:</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_2">
+     <property name="geometry">
+      <rect>
+       <x>60</x>
+       <y>80</y>
+       <width>71</width>
+       <height>21</height>
+      </rect>
+     </property>
+     <property name="font">
+      <font>
+       <weight>50</weight>
+       <bold>false</bold>
+      </font>
+     </property>
+     <property name="text">
+      <string> Password:</string>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="lineEdit_PwdCnt">
+     <property name="geometry">
+      <rect>
+       <x>130</x>
+       <y>40</y>
+       <width>231</width>
+       <height>31</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="lineEdit_Pwd">
+     <property name="geometry">
+      <rect>
+       <x>130</x>
+       <y>80</y>
+       <width>231</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="echoMode">
+      <enum>QLineEdit::Password</enum>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="pushButton_SetPwdCnt">
+     <property name="geometry">
+      <rect>
+       <x>160</x>
+       <y>130</y>
+       <width>81</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="mouseTracking">
+      <bool>false</bool>
+     </property>
+     <property name="text">
+      <string>Set</string>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QPushButton" name="pushButton_Close">
+    <property name="geometry">
+     <rect>
+      <x>340</x>
+      <y>580</y>
+      <width>81</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Microsoft YaHei UI</family>
+      <pointsize>10</pointsize>
+      <weight>75</weight>
+      <bold>true</bold>
+     </font>
+    </property>
+    <property name="text">
+     <string>Close</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_3">
+    <property name="geometry">
+     <rect>
+      <x>100</x>
+      <y>230</y>
+      <width>221</width>
+      <height>101</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string/>
+    </property>
+   </widget>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
