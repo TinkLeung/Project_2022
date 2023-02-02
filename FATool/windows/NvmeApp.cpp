@@ -63,14 +63,19 @@ ULONG NVMeApp::SmartInfo()
 	
 }
 
-//#if 0
+/*
 ULONG NVMeApp::ReadFlashID()
 {
 
     ULONG status = ERROR_SUCCESS;
     NVME_COMMAND nvm_cmd = { 0 };
+    PUCHAR buffer;
 
-    nvm_cmd.CDW0.AsUlong = 0x000900C2;
+    nvm_cmd.CDW0.OPC = 0x000000FC;
+    nvm_cmd.u.GENERAL.CDW13 = 0x0050FFFF;
+
+
+    nvm_cmd.CDW0.AsUlong = 0x000000C2;
     nvm_cmd.u.GENERAL.CDW10 = 0x00000800;
     nvm_cmd.u.GENERAL.CDW11 = 0x0;
     nvm_cmd.u.GENERAL.CDW12 = 0x00000040;
@@ -78,10 +83,10 @@ ULONG NVMeApp::ReadFlashID()
     nvm_cmd.u.GENERAL.CDW14 = 0x0;
     nvm_cmd.u.GENERAL.CDW15 = 0x0;
 
-    PUCHAR buffer;
-    ULONG buflength = FLASH_ID_DATA_LENGTH;
 
-    buffer = (PUCHAR)malloc(buflength);
+    //ULONG buflength = FLASH_ID_DATA_LENGTH;
+
+    buffer = (PUCHAR)malloc(FLASH_ID_DATA_LENGTH);
 
     if (buffer == NULL)
     {
@@ -90,15 +95,15 @@ ULONG NVMeApp::ReadFlashID()
         return status;
     }
 
-    ZeroMemory(buffer, buflength);
-    status = NVMePassThrough(m_pdHandle, &nvm_cmd, buflength, buffer);
+    ZeroMemory(buffer, FLASH_ID_DATA_LENGTH);
+    status = NVMePassThroughDataIn(m_pdHandle, &nvm_cmd, FLASH_ID_DATA_LENGTH, buffer);
     if(status == ERROR_SUCCESS)
     {
-        //PrintRawDataLog(buffer,0x800);
+        PrintRawDataLog(buffer,0x800);
     }
     free(buffer);
     return status;
-}
+}*/
 
 #if 0
 ULONG NVMeApp::EventLog()
@@ -388,8 +393,7 @@ ULONG NVMeApp::ReadLbainfo()
 	return status;
 }
 #endif
-
-
+*/
 void NVMeApp::PrintRawDataLog(PUCHAR data, int len)
 {
     printf("\t00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F");
@@ -424,7 +428,7 @@ void NVMeApp::PrintRawDataLog(PUCHAR data, int len)
 
 	return;
 }
-*/
+
 //For UI Data Display
 #if 0
 ULONG NVMeApp::Identify(PUCHAR backBuffer)
@@ -447,16 +451,15 @@ ULONG NVMeApp::Identify(PUCHAR backBuffer)
 
 ULONG NVMeApp::SmartInfo(PUCHAR backBuffer)
 {
-    PUCHAR buffer;
-    ULONG buflength = SMART_DATA_LENGTH; //512;
+    PUCHAR buffer;    
 
     ULONG status = ERROR_SUCCESS;
-    buffer =(PUCHAR)malloc(buflength);
+    buffer =(PUCHAR)malloc(SMART_DATA_LENGTH);
 
     status = NVMeLogPageQueryProperty(m_pdHandle, NVME_LOG_PAGE_HEALTH_INFO, sizeof(NVME_HEALTH_INFO_LOG), buffer);
     if(status == ERROR_SUCCESS)
     {
-        memcpy(backBuffer,buffer,buflength);
+        memcpy(backBuffer,buffer,SMART_DATA_LENGTH);
     }
 
     free(buffer);
@@ -464,25 +467,30 @@ ULONG NVMeApp::SmartInfo(PUCHAR backBuffer)
 }
 
 
-#if 0
 ULONG NVMeApp::ReadFlashID(PUCHAR backBuffer)
 {
-
     ULONG status = ERROR_SUCCESS;
     NVME_COMMAND nvm_cmd = { 0 };
 
-    nvm_cmd.CDW0.AsUlong = 0x000900C2;
-    nvm_cmd.u.GENERAL.CDW10 = 0x00000800;
+    nvm_cmd.CDW0.OPC = 0x000000FC;
+    nvm_cmd.u.GENERAL.CDW10 = 0x0;
     nvm_cmd.u.GENERAL.CDW11 = 0x0;
-    nvm_cmd.u.GENERAL.CDW12 = 0x00000040;
-    nvm_cmd.u.GENERAL.CDW13 = 0x00000001;
+    nvm_cmd.u.GENERAL.CDW12 = 0x0;
+    nvm_cmd.u.GENERAL.CDW13 = 0x50FFFF;
     nvm_cmd.u.GENERAL.CDW14 = 0x0;
     nvm_cmd.u.GENERAL.CDW15 = 0x0;
 
-    PUCHAR buffer;
-    ULONG buflength = FLASH_ID_DATA_LENGTH;
+    status =NVMePassThroughNonData(m_pdHandle, &nvm_cmd);
+    if(status != ERROR_SUCCESS)
+    {
+        status = GetLastError();
+        return status;
+    }
 
-    buffer = (PUCHAR)malloc(buflength);
+    ZeroMemory(&nvm_cmd, sizeof(NVME_COMMAND));
+    PUCHAR buffer;
+
+    buffer = (PUCHAR)malloc(FLASH_ID_DATA_LENGTH);
 
     if (buffer == NULL)
     {
@@ -490,16 +498,25 @@ ULONG NVMeApp::ReadFlashID(PUCHAR backBuffer)
         return status;
     }
 
-    ZeroMemory(buffer, buflength);
-    status = NVMePassThrough(m_pdHandle, &nvm_cmd, buflength, buffer);
+    nvm_cmd.CDW0.OPC = 0x000000FA;
+    nvm_cmd.u.GENERAL.CDW10 = 0x80;       //NDT
+    nvm_cmd.u.GENERAL.CDW11 = 0x0;
+    nvm_cmd.u.GENERAL.CDW12 = 0xa200a020; //virtual address low
+    nvm_cmd.u.GENERAL.CDW13 = 0x100;      //subcode
+    nvm_cmd.u.GENERAL.CDW14 = 0x0;
+    nvm_cmd.u.GENERAL.CDW15 = 0x0;
+
+    ZeroMemory(buffer, FLASH_ID_DATA_LENGTH);
+    status = NVMePassThroughDataIn(m_pdHandle, &nvm_cmd, FLASH_ID_DATA_LENGTH, buffer);
     if(status == ERROR_SUCCESS)
     {
-        memcpy(backBuffer,buffer,buflength);
+        memcpy(backBuffer,buffer,FLASH_ID_DATA_LENGTH);
+        PrintRawDataLog(buffer, FLASH_ID_DATA_LENGTH);
     }
     free(buffer);
     return status;
 }
-
+#if 0
 ULONG NVMeApp::EventLog(PUCHAR backBuffer)
 {
     ULONG status = 0;

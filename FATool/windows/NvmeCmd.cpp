@@ -904,13 +904,13 @@ ULONG NVMeCmd::NVMeIdentifyNamespaceQueryProperty(HANDLE handle,LPVOID lpOutBuff
 
 }
 
-ULONG NVMeCmd::NVMePassThrough(HANDLE  Handle,LPVOID  lpNvmcmd,LONG	DataTransferLength, LPVOID	lpOutBuffer)
+ULONG NVMeCmd::NVMePassThroughDataIn(HANDLE Handle, LPVOID lpNvmcmd, LONG DataTransferLength, LPVOID lpOutBuffer)
 {
-	ULONG   status = ERROR_SUCCESS;
-	BOOL	result;
+    ULONG    status = ERROR_SUCCESS;
+    BOOL	 result;
     PUCHAR   buffer = NULL;
-	ULONG   bufferLength = 0;
-	ULONG   returnedLength = 0;
+    ULONG    bufferLength = 0;
+    ULONG    returnedLength = 0;
 
 	StorageQuery::PSTORAGE_PROTOCOL_COMMAND protocolCommand = NULL;
 	PNVME_COMMAND command = NULL;
@@ -960,14 +960,12 @@ ULONG NVMeCmd::NVMePassThrough(HANDLE  Handle,LPVOID  lpNvmcmd,LONG	DataTransfer
 	//
 	// Send request down.
 	//
-	result = DeviceIoControl(m_pdHandle,IOCTL_STORAGE_PROTOCOL_COMMAND,
-								buffer,bufferLength,buffer,bufferLength,&returnedLength,NULL);
+    result = DeviceIoControl(Handle,IOCTL_STORAGE_PROTOCOL_COMMAND,	buffer,
+                             bufferLength, buffer, bufferLength, &returnedLength, NULL);
 
 	//
 	// Validate the returned data.
 	//
-
-
 
 	if (!result || (returnedLength == 0) || (STORAGE_PROTOCOL_STATUS_SUCCESS != protocolCommand->ReturnStatus)) 
 	{
@@ -993,6 +991,184 @@ exit:
 	}
 
 	return status;
+}
+
+ULONG NVMeCmd::NVMePassThroughDataOut(HANDLE Handle, LPVOID lpNvmcmd, LONG DataTransferLength, LPVOID lpOutBuffer)
+{
+    ULONG    status = ERROR_SUCCESS;
+    BOOL	 result;
+    PUCHAR   buffer = NULL;
+    ULONG    bufferLength = 0;
+    ULONG    returnedLength = 0;
+
+    StorageQuery::PSTORAGE_PROTOCOL_COMMAND protocolCommand = NULL;
+    PNVME_COMMAND command = NULL;
+    //UINT NVME_MAX_LOG_SIZE = 4096;
+
+    //
+    // Allocate buffer for use.
+    //
+    DWORD dwDataTransferLength = DataTransferLength < 0 ? (-DataTransferLength) : DataTransferLength;
+    bufferLength = FIELD_OFFSET(StorageQuery::STORAGE_PROTOCOL_COMMAND, Command) +
+                    STORAGE_PROTOCOL_COMMAND_LENGTH_NVME + dwDataTransferLength + sizeof(NVME_ERROR_INFO_LOG);
+    buffer = (PUCHAR)malloc(bufferLength);
+
+    if (buffer == NULL) {
+        printf("GetDebugLog: allocate buffer failed, exit.\n");
+        return 1;
+    }
+
+    //
+    // Initialize query data structure to get Identify Controller Data.
+    //
+    ZeroMemory(buffer, bufferLength);
+
+    protocolCommand = (StorageQuery::PSTORAGE_PROTOCOL_COMMAND)buffer;
+    protocolCommand->Version = STORAGE_PROTOCOL_STRUCTURE_VERSION;
+    protocolCommand->Length = sizeof(StorageQuery::STORAGE_PROTOCOL_COMMAND);
+    protocolCommand->ProtocolType =StorageQuery::ProtocolTypeNvme;
+    protocolCommand->Flags = STORAGE_PROTOCOL_COMMAND_FLAG_ADAPTER_REQUEST;
+    protocolCommand->CommandLength = STORAGE_PROTOCOL_COMMAND_LENGTH_NVME;
+    protocolCommand->ErrorInfoLength = sizeof(NVME_ERROR_INFO_LOG);
+
+    protocolCommand->DataToDeviceTransferLength = DataTransferLength;
+
+    //protocolCommand->DataFromDeviceTransferLength = DataTransferLength;
+    protocolCommand->TimeOutValue = 50;
+
+    protocolCommand->ErrorInfoOffset = FIELD_OFFSET(StorageQuery::STORAGE_PROTOCOL_COMMAND, Command) + STORAGE_PROTOCOL_COMMAND_LENGTH_NVME;
+
+    //protocolCommand->DataToDeviceBufferOffset = protocolCommand->ErrorInfoOffset + protocolCommand->ErrorInfoLength;
+
+    protocolCommand->DataFromDeviceBufferOffset = protocolCommand->ErrorInfoOffset + protocolCommand->ErrorInfoLength;
+    protocolCommand->CommandSpecific = STORAGE_PROTOCOL_SPECIFIC_NVME_ADMIN_COMMAND;
+
+    command = (PNVME_COMMAND)protocolCommand->Command;
+    memcpy(command, lpNvmcmd, STORAGE_PROTOCOL_COMMAND_LENGTH_NVME);
+
+    //
+    // Send request down.
+    //
+    result = DeviceIoControl(Handle,IOCTL_STORAGE_PROTOCOL_COMMAND,	buffer,
+                             bufferLength, buffer, bufferLength, &returnedLength, NULL);
+
+    //
+    // Validate the returned data.
+    //
+
+    if (!result || (returnedLength == 0) || (STORAGE_PROTOCOL_STATUS_SUCCESS != protocolCommand->ReturnStatus))
+    {
+        status = GetLastError();
+        printf("\nNVMEPassThrough:  failed. Error Code %d.\n", status);
+        if (STORAGE_PROTOCOL_STATUS_SUCCESS != protocolCommand->ReturnStatus)
+        {
+            printf("\tNVMEPassThrough:  protocolCommand->ReturnStatus: %d.\n", protocolCommand->ReturnStatus);
+        }
+        goto exit;
+    }
+
+    printf("\tNVMEPassThrough:  Success\n");
+    //PNVME_ERROR_INFO_LOG errinfo = (PNVME_ERROR_INFO_LOG)((PCHAR)protocolCommand + protocolCommand->ErrorInfoOffset);
+
+    if (DataTransferLength > 0)
+        memcpy(lpOutBuffer, ((PCHAR)protocolCommand + protocolCommand->DataFromDeviceBufferOffset), protocolCommand->DataFromDeviceTransferLength);
+exit:
+
+    if (buffer != NULL) {
+        free(buffer);
+        buffer = NULL;
+    }
+
+    return status;
+}
+
+ULONG NVMeCmd::NVMePassThroughNonData(HANDLE Handle, LPVOID lpNvmcmd)
+{
+    ULONG    status = ERROR_SUCCESS;
+    BOOL	 result;
+    PUCHAR   buffer = NULL;
+    ULONG    bufferLength = 0;
+    ULONG    returnedLength = 0;
+
+    StorageQuery::PSTORAGE_PROTOCOL_COMMAND protocolCommand = NULL;
+    PNVME_COMMAND command = NULL;
+    //UINT NVME_MAX_LOG_SIZE = 4096;
+
+    //
+    // Allocate buffer for use.
+    //
+    //DWORD dwDataTransferLength = DataTransferLength < 0 ? (-DataTransferLength) : DataTransferLength;
+    bufferLength = FIELD_OFFSET(StorageQuery::STORAGE_PROTOCOL_COMMAND, Command) +
+                    STORAGE_PROTOCOL_COMMAND_LENGTH_NVME + sizeof(NVME_ERROR_INFO_LOG);
+    buffer = (PUCHAR)malloc(bufferLength);
+
+    if (buffer == NULL) {
+        printf("GetDebugLog: allocate buffer failed, exit.\n");
+        return 1;
+    }
+
+    //
+    // Initialize query data structure to get Identify Controller Data.
+    //
+    ZeroMemory(buffer, bufferLength);
+
+    protocolCommand = (StorageQuery::PSTORAGE_PROTOCOL_COMMAND)buffer;
+    protocolCommand->Version = STORAGE_PROTOCOL_STRUCTURE_VERSION;
+    protocolCommand->Length = sizeof(StorageQuery::STORAGE_PROTOCOL_COMMAND);
+    protocolCommand->ProtocolType =StorageQuery::ProtocolTypeNvme;
+    protocolCommand->Flags = STORAGE_PROTOCOL_COMMAND_FLAG_ADAPTER_REQUEST;
+    protocolCommand->CommandLength = STORAGE_PROTOCOL_COMMAND_LENGTH_NVME;
+    protocolCommand->ErrorInfoLength = sizeof(NVME_ERROR_INFO_LOG);
+
+    //protocolCommand->DataToDeviceTransferLength = 0;
+
+    //protocolCommand->DataFromDeviceTransferLength = DataTransferLength;
+    protocolCommand->TimeOutValue = 50;
+
+    protocolCommand->ErrorInfoOffset = FIELD_OFFSET(StorageQuery::STORAGE_PROTOCOL_COMMAND, Command) + STORAGE_PROTOCOL_COMMAND_LENGTH_NVME;
+
+    //protocolCommand->DataToDeviceBufferOffset = protocolCommand->ErrorInfoOffset + protocolCommand->ErrorInfoLength;
+
+    protocolCommand->DataFromDeviceBufferOffset = protocolCommand->ErrorInfoOffset + protocolCommand->ErrorInfoLength;
+    protocolCommand->CommandSpecific = STORAGE_PROTOCOL_SPECIFIC_NVME_ADMIN_COMMAND;
+
+    command = (PNVME_COMMAND)protocolCommand->Command;
+    memcpy(command, lpNvmcmd, STORAGE_PROTOCOL_COMMAND_LENGTH_NVME);
+
+    //
+    // Send request down.
+    //
+    result = DeviceIoControl(Handle,IOCTL_STORAGE_PROTOCOL_COMMAND,	buffer,
+                             bufferLength, buffer, bufferLength, &returnedLength, NULL);
+
+    //
+    // Validate the returned data.
+    //
+
+    if (!result || (returnedLength == 0) || (STORAGE_PROTOCOL_STATUS_SUCCESS != protocolCommand->ReturnStatus))
+    {
+        status = GetLastError();
+        printf("\nNVMEPassThrough:  failed. Error Code %d.\n", status);
+        if (STORAGE_PROTOCOL_STATUS_SUCCESS != protocolCommand->ReturnStatus)
+        {
+            printf("\tNVMEPassThrough:  protocolCommand->ReturnStatus: %d.\n", protocolCommand->ReturnStatus);
+        }
+        goto exit;
+    }
+
+    printf("\tNVMEPassThrough:  Success\n");
+    //PNVME_ERROR_INFO_LOG errinfo = (PNVME_ERROR_INFO_LOG)((PCHAR)protocolCommand + protocolCommand->ErrorInfoOffset);
+
+    /*if (DataTransferLength > 0)
+        memcpy(lpOutBuffer, ((PCHAR)protocolCommand + protocolCommand->DataFromDeviceBufferOffset), protocolCommand->DataFromDeviceTransferLength);*/
+exit:
+
+    if (buffer != NULL) {
+        free(buffer);
+        buffer = NULL;
+    }
+
+    return status;
 }
 
 int  NVMeCmd::NVMeReadViaSCSIPassThrough(HANDLE Handle, LPVOID lpOutBuffer)

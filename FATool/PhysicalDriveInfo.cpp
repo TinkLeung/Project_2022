@@ -79,7 +79,7 @@ void PhysicalDriveInfo::init()
     m_pIDYNamespaceInfo = (unsigned char*)malloc(IDY_NAMESPACE_INFO_LENGTH);
     m_pIDYControllerInfo = (unsigned char*)malloc(IDY_CONTROLLER_INFO_LENGTH);
     //m_pEventLogInfo = (unsigned char*) malloc(EVENT_LOG_DATA_LENGTH);
-    //m_pFlashIDInfo = (unsigned char*) malloc(FLASH_ID_DATA_LENGTH);
+    m_pFlashIDInfo = (unsigned char*) malloc(FLASH_ID_DATA_LENGTH);
 
 	return;
 }
@@ -263,6 +263,8 @@ unsigned long PhysicalDriveInfo::GetLbaInfo(unsigned char* buff)
 #endif
     return status;
 }
+*/
+
 
 unsigned long PhysicalDriveInfo::GetFlashIDInfo(unsigned char* buff)
 {
@@ -333,6 +335,7 @@ unsigned long PhysicalDriveInfo::GetFlashIDInfo(unsigned char* buff)
     return status;
 }
 
+/*
 unsigned long PhysicalDriveInfo::GetEventLogInfo(unsigned char* buff)
 {
     unsigned char buffer[EVENT_LOG_DATA_LENGTH];

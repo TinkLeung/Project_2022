@@ -288,7 +288,7 @@ void MainWindow::on_Button_Scan_clicked()
 }
 
 void MainWindow::on_List_Command_itemDoubleClicked(QListWidgetItem *item)
-{
+{    
     if(!ReadyFlg)
     {
         //QApplication::setQuitOnLastWindowClosed(false);
@@ -331,9 +331,15 @@ void MainWindow::on_List_Command_itemDoubleClicked(QListWidgetItem *item)
             ItemFlg |=BIT5;
             break;
         case FLASH_ID_ITEM:
-
+        {
+            if(ERROR_SUCCESS_STATUS == physicalDriveInfo->GetFlashIDInfo(physicalDriveInfo->m_pFlashIDInfo))
+            {
+                UIDisplay_RawData(physicalDriveInfo->m_pFlashIDInfo, FLASH_ID_DATA_LENGTH);
+            }
             ItemFlg |=BIT6;
             break;
+        }
+
         default:
         ;
     }
@@ -452,7 +458,11 @@ void MainWindow::on_Button_Save_clicked()
     if(ItemFlg & BIT6)
     {
         FilePath = PublicPath + "NandFlashID.bin";
-
+        if(!FolderOp->Folder_SaveBinaryFile((char*)physicalDriveInfo->m_pFlashIDInfo, FLASH_ID_DATA_LENGTH, FilePath))
+        {
+            QMessageBox::warning(this, "Save Files Error", "Create binary Fail");
+            return;
+        }
     }
 
     SetControlState(true);
@@ -875,7 +885,7 @@ void MainWindow::UIDisplay_RawData(const unsigned char *dataPtr, int length)
         return;
     }
 
-    headStr = "         ";
+    headStr = "          ";
     for(i=0; i<16; i++)
     {
         tmpStr.sprintf("%02X ",i);

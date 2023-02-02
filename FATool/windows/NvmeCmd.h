@@ -46,7 +46,9 @@ class NVMeCmd
 		virtual ULONG NVMeLogPageQueryProperty(HANDLE handle, DWORD ProtocolDataReqVal, DWORD ProtocolDataLength, LPVOID lpOutBuffer);
 		virtual ULONG NVMeIdentifyQueryProperty(HANDLE handle, LPVOID lpOutBuffer);
         virtual ULONG NVMeIdentifyNamespaceQueryProperty(HANDLE handle, LPVOID lpOutBuffer);
-		virtual ULONG NVMePassThrough(HANDLE  Handle,LPVOID  lpNvmcmd,LONG DataTransferLength,LPVOID lpOutBuffer);
+        virtual ULONG NVMePassThroughDataIn(HANDLE Handle,LPVOID lpNvmcmd,LONG DataTransferLength,LPVOID lpOutBuffer);
+        virtual ULONG NVMePassThroughDataOut(HANDLE Handle,LPVOID lpNvmcmd,LONG DataTransferLength,LPVOID lpOutBuffer);
+        virtual ULONG NVMePassThroughNonData(HANDLE Handle,LPVOID lpNvmcmd);
 		virtual ULONG DeviceQueryProperty(HANDLE Handle, LPVOID lpOutBuffer);
 		virtual int NVMeReadViaSCSIPassThrough(HANDLE Handle, LPVOID lpOutBuffer);
         virtual int NVMeWriteViaSCSIPassThrough(HANDLE Handle, LPVOID lpOutBuffer);

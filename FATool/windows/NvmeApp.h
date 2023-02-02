@@ -22,7 +22,7 @@ class NVMeApp : public NVMeCmd
 		void RefreshDrive();
         ULONG Identify();
         ULONG SmartInfo();
-        ULONG ReadFlashID();
+        //ULONG ReadFlashID();
         //ULONG EventLog();
         //ULONG ReadLbainfo();
         //ULONG WriteLbainfo();
@@ -30,7 +30,7 @@ class NVMeApp : public NVMeCmd
 	public:
         ULONG Identify(PUCHAR buffer);
         ULONG SmartInfo(PUCHAR buffer);
-        //ULONG ReadFlashID(PUCHAR buffer);
+        ULONG ReadFlashID(PUCHAR buffer);
         //ULONG EventLog(PUCHAR backBuffer);
         //ULONG ReadLbainfo(PUCHAR backBuffer);
         ULONG IDTableNamespaceInfo(PUCHAR backBuffer);
@@ -39,7 +39,7 @@ class NVMeApp : public NVMeCmd
 	private:
         //void PrintDataIdentify(PNVME_IDENTIFY_CONTROLLER_DATA idtfyData);
        // void PrintSmartLog(PNVME_HEALTH_INFO_LOG smartInfo);
-       // void PrintRawDataLog(PUCHAR data, int len);
+       void PrintRawDataLog(PUCHAR data, int len);
 
 };
 

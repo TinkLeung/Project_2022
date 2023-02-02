@@ -56,7 +56,7 @@ public:
     unsigned char* m_pErrorLog;
     unsigned char* m_pIDYNamespaceInfo;
     unsigned char* m_pIDYControllerInfo;
-    //unsigned char* m_pFlashIDInfo;
+    unsigned char* m_pFlashIDInfo;
     //unsigned char* m_pEventLogInfo;
 
 	
@@ -75,7 +75,7 @@ public:
     unsigned long GetIDYNamespaceInfo(unsigned char * buff);
     unsigned long GetIDYControllerInfo(unsigned char * buff);
     unsigned long GetErrorLogInfo(unsigned char* buff, int entryCnt);
-    //unsigned long GetFlashIDInfo(unsigned char* buff);
+    unsigned long GetFlashIDInfo(unsigned char* buff);
     //unsigned long GetEventLogInfo(unsigned char* buff);
 
 
