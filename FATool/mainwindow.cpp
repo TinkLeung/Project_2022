@@ -322,11 +322,14 @@ void MainWindow::on_List_Command_itemDoubleClicked(QListWidgetItem *item)
             break;
 
         case BBT_ITEM:
-            mBBInfo = new CBabBlkView(this);
-            if(mBBInfo)
+            if(ERROR_SUCCESS_STATUS == physicalDriveInfo->GetBadBlockInfo())
             {
-                textLayout->addWidget(mBBInfo);
-                textLayout->setContentsMargins(0, 0, 0, 0);
+                mBBInfo = new CBabBlkView(this);
+                if(mBBInfo)
+                {
+                    textLayout->addWidget(mBBInfo);
+                    textLayout->setContentsMargins(0, 0, 0, 0);
+                }
             }
             ItemFlg |=BIT5;
             break;
@@ -451,7 +454,12 @@ void MainWindow::on_Button_Save_clicked()
 
     if(ItemFlg & BIT5)
     {
-        FilePath = PublicPath + "BadBlockTable.bin";
+        FilePath = PublicPath + "BadBlockInfo.txt";
+        if(!FolderOp->Folder_SaveBadBlkInfo(FilePath))
+        {
+            QMessageBox::warning(this, "Save Files Error", "Create TXT Fail");
+            return;
+        }
 
     }
 

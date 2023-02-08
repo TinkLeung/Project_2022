@@ -5,7 +5,7 @@
 #include "windows/Nvmeioctl.h"
 #endif
 
-
+QString BadBlkDumpLog;
 
 uint128b_t le128_to_cpu(unsigned char *data)
 {

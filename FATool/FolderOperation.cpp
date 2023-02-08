@@ -80,3 +80,19 @@ bool FolderOperation::Folder_SaveBinaryFile(char *dataPtr, int datalen, QString 
      return true;
 }
 
+bool FolderOperation::Folder_SaveBadBlkInfo(QString filePath)
+{
+    QFile File(filePath);
+
+    if(File.open(QIODevice::WriteOnly))
+    {
+        QTextStream textStream(&File);
+        textStream<<BadBlkDumpLog<<endl;
+    }
+    else
+    {
+        return false;
+    }
+    File.close();
+    return true;
+}

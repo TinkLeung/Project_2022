@@ -14,6 +14,7 @@ public:
 
     bool Folder_SaveTxtFile(QList<SPEC_ITEM>*infoList, QString filePath);
     bool Folder_SaveBinaryFile(char *dataPtr, int datalen, QString filePath);
+    bool Folder_SaveBadBlkInfo( QString filePath);
 
 };
 

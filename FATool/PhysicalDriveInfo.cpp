@@ -39,6 +39,8 @@ struct config {
 PCI_LNK LnkSts;
 PCI_LNK LnkCap;
 
+BAD_BLOCK_INFO BbInfo;
+
 #ifdef WIN32
 PhysicalDriveInfo::PhysicalDriveInfo(int driveNum)
 {
@@ -276,7 +278,7 @@ unsigned long PhysicalDriveInfo::GetFlashIDInfo(unsigned char* buff)
     if(status == ERROR_SUCCESS)
         memcpy(buff,buffer,FLASH_ID_DATA_LENGTH);
     else
-        printf("identify error %d",status);
+        printf("read Flash ID error %d",status);
 
 #else
 
@@ -290,8 +292,46 @@ unsigned long PhysicalDriveInfo::GetFlashIDInfo(unsigned char* buff)
         return status;
     }
 
-    struct config cfg;
-    cfg.opcode=0xc2;
+    struct config cfg = {0};
+    cfg.opcode=0xfc;
+    cfg.flags=0;
+    cfg.rsvd=0;
+    cfg.namespace_id=0;
+    cfg.data_len= 0;
+    cfg.metadata_len=0;
+    cfg.timeout=0;
+    cfg.cdw2=0;
+    cfg.cdw3=0;
+    cfg.cdw10=0;
+    cfg.cdw11=0;
+    cfg.cdw12=0;
+    cfg.cdw13=0x50ffff;
+    cfg.cdw14=0;
+    cfg.cdw15=0;
+    cfg.prefill =0;
+
+    status = nvme_passthru(fd, NVME_IOCTL_ADMIN_CMD, cfg.opcode, cfg.flags, cfg.rsvd,
+                cfg.namespace_id, cfg.cdw2, cfg.cdw3, cfg.cdw10,
+                cfg.cdw11, cfg.cdw12, cfg.cdw13, cfg.cdw14, cfg.cdw15,
+                cfg.data_len, (void *)buffer, cfg.metadata_len, metadata,
+                cfg.timeout, &result);
+
+    if(status<0)
+    {
+        printf("read-flash(0xfc) passthru error");
+        close_dev(fd);
+        return status;
+    }
+    else if(status)
+    {
+        printf("read-flash(0xfc) passthru error");
+        show_nvme_status(status);
+        close_dev(fd);
+        return status;
+    }
+
+    cfg = {0};
+    cfg.opcode=0xfa;
     cfg.flags=0;
     cfg.rsvd=0;
     cfg.namespace_id=0;
@@ -300,10 +340,10 @@ unsigned long PhysicalDriveInfo::GetFlashIDInfo(unsigned char* buff)
     cfg.timeout=0;
     cfg.cdw2=0;
     cfg.cdw3=0;
-    cfg.cdw10=2048;
+    cfg.cdw10=0x80;
     cfg.cdw11=0;
-    cfg.cdw12=64;
-    cfg.cdw13=1;
+    cfg.cdw12=0xa200a020;
+    cfg.cdw13=0x100;
     cfg.cdw14=0;
     cfg.cdw15=0;
     cfg.prefill =0;
@@ -333,6 +373,159 @@ unsigned long PhysicalDriveInfo::GetFlashIDInfo(unsigned char* buff)
 #endif
 
     return status;
+}
+
+#ifndef WIN32
+unsigned long GetRDTResultInfo(unsigned char *buff, char chanel, char ce, char lun)
+{
+    unsigned long status = ERROR_SUCCESS_STATUS;
+    unsigned char buffer[RDT_INFO_LENGTH];
+    __u32 result;
+    void *data = NULL, *metadata = NULL;
+    int fd = open_dev(currentDev);
+    if(fd<0)
+    {
+        status=fd;
+        printf("open dev failed err %d",status);
+        return status;
+    }
+
+    struct config cfg = {0};
+    cfg.opcode=0xfc;
+    cfg.flags=0;
+    cfg.rsvd=0;
+    cfg.namespace_id=0;
+    cfg.data_len= RDT_INFO_LENGTH;
+    cfg.metadata_len=0;
+    cfg.timeout=0;
+    cfg.cdw2=0;
+    cfg.cdw3=0;
+    cfg.cdw10= RDT_INFO_LENGTH >> 2;
+    cfg.cdw11=0;
+    cfg.cdw12=0;
+    cfg.cdw13=0x43<<16 | (RDT_INFO_LENGTH>>9); //subCode:0x43
+    cfg.cdw14=lun | (ce<<2) | (chanel<<5);
+    cfg.cdw15=0;
+    cfg.prefill =0;
+
+    status = nvme_passthru(fd, NVME_IOCTL_ADMIN_CMD, cfg.opcode, cfg.flags, cfg.rsvd,
+                cfg.namespace_id, cfg.cdw2, cfg.cdw3, cfg.cdw10,
+                cfg.cdw11, cfg.cdw12, cfg.cdw13, cfg.cdw14, cfg.cdw15,
+                cfg.data_len, (void *)buffer, cfg.metadata_len, metadata,
+                cfg.timeout, &result);
+
+    if(status<0)
+    {
+        printf("read-flash id(0xfc) passthru error");
+        close_dev(fd);
+        return status;
+    }
+    else if(status)
+    {
+        printf("read-flash id(0xfc) passthru error");
+        show_nvme_status(status);
+        close_dev(fd);
+        return status;
+    }
+    memcpy(buff,buffer,FLASH_ID_DATA_LENGTH);
+    close_dev(fd);
+    return status;
+
+}
+#endif
+
+unsigned long PhysicalDriveInfo::GetBadBlockInfo()
+{
+    BYTE MaxCHSupported = 0;
+    BYTE MaxCESupported = 0;
+    BYTE Chanel = 0, Ce = 0;
+    unsigned long Status = ERROR_SUCCESS_STATUS;
+    unsigned char tmpBuf[RDT_INFO_LENGTH] = { 0 };
+    PRDT_RESULT pRdtInfo = (PRDT_RESULT)tmpBuf;
+#ifdef WIN32
+    NVMeApp nvmeapp(currentDrive);    //
+    //check supported CE/Chanel
+    nvmeapp.ReadFlashID(m_pFlashIDInfo);
+#else
+    GetFlashIDInfo(m_pFlashIDInfo);
+#endif
+
+    for(Chanel = 0; Chanel < MAX_CH; Chanel++)
+    {
+        for(Ce = 0; Ce < MAX_CE; Ce++)
+        {
+            BYTE FlashID[8] = {0};
+            memcpy(FlashID, m_pFlashIDInfo+Chanel*64+Ce*8, 8);
+            /*printf("%x_CH:%d, CE:%d, ID:%X %X %X %X %X %X %X %X\n",(m_pFlashIDInfo+Chanel*64+ce*8), Chanel, ce,
+                   FlashID[0] ,FlashID[1] ,FlashID[2] ,FlashID[3] ,
+                   FlashID[4] ,FlashID[5] ,FlashID[6] ,FlashID[7] );*/
+            if(FlashID[0] == 0 && FlashID[1] == 0 && FlashID[2] == 0 && FlashID[3] == 0
+               && FlashID[4] == 0 && FlashID[5] == 0 && FlashID[6] == 0 && FlashID[7] == 0)
+            {
+                continue;
+            }
+            else {
+                MaxCHSupported = Chanel+1;
+                MaxCESupported = Ce+1;
+            }
+        }
+    }
+
+    //printf("MaxCE:%d, MaxCH:%d\n", MaxCESupported, MaxCHSupported);
+    ZeroMemory(&BbInfo, sizeof(BAD_BLOCK_INFO));
+    BadBlkDumpLog.clear();
+    BadBlkDumpLog.append("----------------------------------BAD BLOCK INFO for CH/CE/LUN----------------------------------\n\n");
+    for(BYTE Lun = 0; Lun < 1; Lun++) //1 lun per CE
+    {
+        for(Ce = 0; Ce < MaxCESupported; Ce++)
+        {
+            for(Chanel = 0; Chanel < MaxCHSupported; Chanel++)
+            {
+#ifdef WIN32
+                Status = nvmeapp.GetRDTResultInfo(tmpBuf, Chanel, Ce, Lun);
+#else
+                Status = GetRDTResultInfo(tmpBuf, Chanel, Ce, Lun);
+#endif
+                if(Status || RDT_RESULT_PASS != pRdtInfo->result)
+                {
+                   BadBlkDumpLog.append(QString::asprintf("CH%d CE%d LUN% RDT Result Fail:0x%X\n",Chanel, Ce, Lun, pRdtInfo->result));
+                   continue;
+                }
+                else
+                {
+                    BbInfo.BadBlkPerLun[Chanel][Ce].OriBad = pRdtInfo->factoryBadNum;
+                    BbInfo.BadBlkPerLun[Chanel][Ce].LaterBad = pRdtInfo->laterBadNum;
+                    BbInfo.BadBlkPerLun[Chanel][Ce].EraseFail = pRdtInfo->eraseFailNum;
+                    BbInfo.BadBlkPerLun[Chanel][Ce].ProgramFail = pRdtInfo->programFailNum;
+                    BbInfo.BadBlkPerLun[Chanel][Ce].ReadFail = pRdtInfo->readFailNum;
+                    BbInfo.BadBlkPerLun[Chanel][Ce].TotalBad = BbInfo.BadBlkPerLun[Chanel][Ce].OriBad + BbInfo.BadBlkPerLun[Chanel][Ce].EraseFail +
+                                                            BbInfo.BadBlkPerLun[Chanel][Ce].ProgramFail + BbInfo.BadBlkPerLun[Chanel][Ce].ReadFail;
+                    BbInfo.TotalOriBad += pRdtInfo->factoryBadNum;
+                    BbInfo.TotalNewBad += pRdtInfo->laterBadNum;
+                    BbInfo.TotalProgFail += pRdtInfo->programFailNum;
+                    BbInfo.ToTalEraseFail += pRdtInfo->eraseFailNum;
+                    BbInfo.TotalReadFail += pRdtInfo->readFailNum;
+                    BbInfo.TotalBadBlock += BbInfo.BadBlkPerLun[Chanel][Ce].TotalBad;
+
+                    BadBlkDumpLog.append(QString::asprintf("CH%d CE%d LUN%d :\n",Chanel, Ce, Lun));
+                    BadBlkDumpLog.append(QString::asprintf("BadBlockCount: %d\t FactoryBad: %d\t NewBad: %d\n"
+                                                           "ProgramFail: %d\t EraseFail: %d\t ReadFail: %d\n\n",
+                                                           pRdtInfo->badBlcokNum, pRdtInfo->factoryBadNum, pRdtInfo->laterBadNum,
+                                                           pRdtInfo->programFailNum, pRdtInfo->eraseFailNum, pRdtInfo->readFailNum));
+                }
+            }
+        }
+    }
+    BadBlkDumpLog.append(QString::asprintf("Total Bad Block counts:%d\n",BbInfo.TotalBadBlock));
+    BadBlkDumpLog.append(QString::asprintf("Total Factory Bad Block counts:%d\n",BbInfo.TotalOriBad));
+    BadBlkDumpLog.append(QString::asprintf("Total New Bad Block counts:%d\n",BbInfo.TotalNewBad));
+    BadBlkDumpLog.append(QString::asprintf("Total Program Fail Block counts:%d\n",BbInfo.TotalProgFail));
+    BadBlkDumpLog.append(QString::asprintf("Total Erase Fail Block counts:%d\n",BbInfo.ToTalEraseFail));
+    BadBlkDumpLog.append(QString::asprintf("Total Read Fail Block counts:%d\n",BbInfo.TotalReadFail));
+
+
+    //free(pRdtInfo);
+    return Status;
 }
 
 /*

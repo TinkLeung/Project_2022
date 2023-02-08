@@ -978,7 +978,7 @@ ULONG NVMeCmd::NVMePassThroughDataIn(HANDLE Handle, LPVOID lpNvmcmd, LONG DataTr
 		goto exit;
 	}
 
-	printf("\tNVMEPassThrough:  Success\n");
+    //printf("\tNVMEPassThrough:  Success\n");
 	//PNVME_ERROR_INFO_LOG errinfo = (PNVME_ERROR_INFO_LOG)((PCHAR)protocolCommand + protocolCommand->ErrorInfoOffset);
 
 	if (DataTransferLength > 0)

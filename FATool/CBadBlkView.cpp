@@ -3,7 +3,9 @@
 #include <QtWidgets>
 #include <QTableView>
 #include <QStandardItemModel>
+#include "PhysicalDriveInfo.h"
 
+extern BAD_BLOCK_INFO BbInfo;
 
 CBabBlkView::CBabBlkView(QWidget *parent) : QDialog(parent)
 {
@@ -13,17 +15,17 @@ CBabBlkView::CBabBlkView(QWidget *parent) : QDialog(parent)
 
     QStandardItemModel *model0 = new QStandardItemModel();
 
-    model0->setHorizontalHeaderLabels({"Total","Original","Erase","Program","ECC"});
+    model0->setHorizontalHeaderLabels({"Total","Original Bad","Erase Fail","Program Fail","Read Fail"});
     totalBbView->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     //totalBbView->verticalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     totalBbView->verticalHeader()->hide();
     totalBbView->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
-    model0->setItem(0, 0, new QStandardItem (QString::asprintf("%d", 0)));     //Total
-    model0->setItem(0, 1, new QStandardItem (QString::asprintf("%d", 0)));     //Original
-    model0->setItem(0, 2, new QStandardItem (QString::asprintf("%d", 0)));     //Erase
-    model0->setItem(0, 3, new QStandardItem (QString::asprintf("%d", 0)));     //Program
-    model0->setItem(0, 4, new QStandardItem (QString::asprintf("%d", 0)));     //ECC
+    model0->setItem(0, 0, new QStandardItem (QString::asprintf("%d", BbInfo.TotalBadBlock)));     //Total bad
+    model0->setItem(0, 1, new QStandardItem (QString::asprintf("%d", BbInfo.TotalOriBad)));     //Original bad
+    model0->setItem(0, 2, new QStandardItem (QString::asprintf("%d", BbInfo.ToTalEraseFail)));     //Erase fail
+    model0->setItem(0, 3, new QStandardItem (QString::asprintf("%d", BbInfo.TotalProgFail)));     //Program fail
+    model0->setItem(0, 4, new QStandardItem (QString::asprintf("%d", BbInfo.TotalReadFail)));     //Read fail
     //model0->setRowCount(2);
     totalBbView->setModel(model0);
 
@@ -33,13 +35,13 @@ CBabBlkView::CBabBlkView(QWidget *parent) : QDialog(parent)
     oriBbView->verticalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     oriBbView->verticalHeader()->hide();
     oriBbView->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    for(int ce=0; ce<4; ce++)
+
+    for(int ce=0; ce < MAX_CE; ce++)
     {
         model1->setItem(ce, 0, new QStandardItem (QString::asprintf("CE %d", ce)));
-        for(int ch=0; ch<8; ch++)
-        {
-            model1->setItem(ce, ch+1, new QStandardItem (QString::asprintf("%d", 0)));
-
+        for(int ch=0; ch < MAX_CH; ch++)
+        {            
+            model1->setItem(ce, ch+1, new QStandardItem (QString::asprintf("%d", BbInfo.BadBlkPerLun[ch][ce].OriBad)));
         }
     }
     oriBbView->setModel(model1);
@@ -50,12 +52,13 @@ CBabBlkView::CBabBlkView(QWidget *parent) : QDialog(parent)
     newBbView->verticalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     newBbView->verticalHeader()->hide();
     newBbView->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    for(int ce=0; ce<4; ce++)
+    for(int ce=0; ce<MAX_CE; ce++)
     {
         model2->setItem(ce, 0, new QStandardItem (QString::asprintf("CE %d", ce)));
-        for(int ch=0; ch<8; ch++)
+        for(int ch=0; ch<MAX_CH; ch++)
         {
-            model2->setItem(ce, ch+1, new QStandardItem (QString::asprintf("%d", 0)));
+
+            model2->setItem(ce, ch+1, new QStandardItem (QString::asprintf("%d", BbInfo.BadBlkPerLun[ch][ce].LaterBad)));
 
         }
     }

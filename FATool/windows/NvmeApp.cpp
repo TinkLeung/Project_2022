@@ -396,7 +396,7 @@ ULONG NVMeApp::ReadLbainfo()
 */
 void NVMeApp::PrintRawDataLog(PUCHAR data, int len)
 {
-    printf("\t00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F");
+    printf("00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F");
     UCHAR buf[16];
 
     for(int i=0; i<len;++i)
@@ -516,6 +516,48 @@ ULONG NVMeApp::ReadFlashID(PUCHAR backBuffer)
     free(buffer);
     return status;
 }
+
+ULONG NVMeApp::GetRDTResultInfo(PUCHAR Rtnbuffer, UCHAR chanel, UCHAR ce, UCHAR lun)
+{
+    ULONG status = ERROR_SUCCESS;
+    NVME_COMMAND nvm_cmd = { 0 };
+    PUCHAR buffer;
+    BYTE subCode =0x43;         //
+    //SHORT blkNum = 8;            //sector count for transfer,4K
+    BYTE offset = 0;            //0,default,represent 32K
+
+    buffer = (PUCHAR)malloc(RDT_INFO_LENGTH);
+    if (buffer == NULL)
+    {
+        status = GetLastError();
+        printf("Get RDT Info-No Resourses!");
+        return status;
+    }
+
+    nvm_cmd.CDW0.OPC = 0x000000FA;                            //OpCode of DataIn
+    nvm_cmd.u.GENERAL.CDW10 = RDT_INFO_LENGTH>>2;             //Number of DWord to Xfer
+    nvm_cmd.u.GENERAL.CDW11 = 0x0;
+    nvm_cmd.u.GENERAL.CDW12 = 0x0;
+    nvm_cmd.u.GENERAL.CDW13 = subCode<<16 | (RDT_INFO_LENGTH>>9);             //subcode
+    nvm_cmd.u.GENERAL.CDW14 = lun | (ce<<2) | (chanel<<5) | offset;
+    nvm_cmd.u.GENERAL.CDW15 = 0x0;
+
+    ZeroMemory(buffer, RDT_INFO_LENGTH);
+    status = NVMePassThroughDataIn(m_pdHandle, &nvm_cmd, RDT_INFO_LENGTH, buffer);
+    if(status == ERROR_SUCCESS)
+    {
+        memcpy(Rtnbuffer,buffer,RDT_INFO_LENGTH);
+        //printf("CH:%d,CE:%d\n", chanel, ce);
+        //PrintRawDataLog(buffer, 512);
+    }
+    else {
+        printf("Get RDT Info Fail, errCoede:0x%x\n", status);
+    }
+    free(buffer);
+    return status;
+
+}
+
 #if 0
 ULONG NVMeApp::EventLog(PUCHAR backBuffer)
 {

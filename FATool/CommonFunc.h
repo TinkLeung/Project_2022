@@ -24,6 +24,30 @@
 #define IDY_NAMESPACE_INFO_LENGTH   0X1000
 #define IDY_CONTROLLER_INFO_LENGTH  0X1000
 
+#define MAX_CH                      8
+#define MAX_CE                      8
+#define MAX_LUN                     2
+#define RDT_INFO_LENGTH             0x1000  //0x8000,32K per die, only the first 4k bytes are what we need.-20230206
+
+#define RDT_RESULT_PASS                 0x00000000
+#define RDT_RESULT_FAIL                 0xFFFFFFFF
+#define RDT_RESULT_PERFORMANCE_FAIL     0xFFFFFFF1
+#define RDT_RESULT_PWR_DROP             0xFFFFFFF2
+#define RDT_RESULT_DRAM_FAIL            0xFFFFFFF3
+#define RDT_RESULT_CTRL_FAIL            0xFFFFFFF4
+#define RDT_RESULT_CAP_OP_FAIL          0xFFFFFFF5
+#define RDT_RESULT_BIG_ECC_FAIL         0xFFFFFFF6
+#define RDT_RESULT_HIGH_TEMP            0xFFFFFFF7
+#define RDT_RESULT_DRIVE_ISSUE          0xFFFFFFF8
+#define RDT_RESULT_CACHE_FAIL           0xFFFFFFF9
+#define RDT_RESULT_NAND_PWR_CUT         0xFFFFFFFA
+#define RDT_RESULT_EARLY_RETENTION      0xFFFFFFFB
+#define RDT_RESULT_SNAP_READ_FAIL       0xFFFFFFFC
+#define RDT_RESULT_WR_RD_MIX_FAIL       0xFFFFFFFD
+#define RDT_RESULT_READ_RETRY_FAIL      0xFFFFFFFE
+
+
+extern QString BadBlkDumpLog;
 
 typedef struct{
     QString Description;

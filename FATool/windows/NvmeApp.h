@@ -31,10 +31,12 @@ class NVMeApp : public NVMeCmd
         ULONG Identify(PUCHAR buffer);
         ULONG SmartInfo(PUCHAR buffer);
         ULONG ReadFlashID(PUCHAR buffer);
+        ULONG GetRDTResultInfo(PUCHAR buffer, UCHAR chanel, UCHAR ce, UCHAR lun);
         //ULONG EventLog(PUCHAR backBuffer);
         //ULONG ReadLbainfo(PUCHAR backBuffer);
         ULONG IDTableNamespaceInfo(PUCHAR backBuffer);
         ULONG IDTableControllerInfo(PUCHAR backBuffer);
+
 
 	private:
         //void PrintDataIdentify(PNVME_IDENTIFY_CONTROLLER_DATA idtfyData);
